@@ -3,3 +3,4 @@ dist/
 *.tsbuildinfo
 .vite/
 *.local
+data/*.db*
