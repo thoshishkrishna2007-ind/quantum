@@ -11,6 +11,7 @@ import { SimulationPanel } from './components/SimulationPanel'
 import { StartupSequence } from './components/StartupSequence'
 import { TerrainScene } from './components/TerrainScene'
 import { TimeSlider } from './components/TimeSlider'
+import { DatasetManager } from './components/DatasetManager'
 
 const initialSettings: SimulationSettings = { rainfall: 42, riverLevel: 36, soil: 58, release: 18, temperature: 19, duration: 24 }
 
@@ -25,7 +26,7 @@ const viewTitles: Record<ViewId, [string,string]> = {
   overview:['BASIN OVERVIEW','Live environmental intelligence'], forecast:['FORECAST INTELLIGENCE','Prediction and uncertainty'],
   map:['FLOOD MAP','Spatial risk and propagation'], quantum:['QUANTUM AI','Hybrid computation architecture'],
   river:['RIVER NETWORK','Station intelligence'], simulation:['SIMULATION','Scenario laboratory'],
-  alerts:['ALERTS','Spatial warning engine'], reports:['REPORTS','Decision intelligence center'],
+  datasets:['DATASETS','Hydrological data vault'], alerts:['ALERTS','Spatial warning engine'], reports:['REPORTS','Decision intelligence center'],
 }
 
 function App() {
@@ -108,6 +109,7 @@ function App() {
         {view==='forecast' && <ForecastPanel/>}
         {view==='quantum' && <QuantumVisualization/>}
         {view==='river' && <RiverIntelligence selected={station} onSelect={setStation}/>} 
+        {view==='datasets' && <DatasetManager/>}
         {view==='alerts' && <AlertSystem/>}
         {view==='reports' && <ReportCenter/>}
       </main>

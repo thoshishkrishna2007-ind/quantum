@@ -9,7 +9,7 @@ export const stations: Station[] = [
 
 export const navItems = [
   ['overview', 'Overview'], ['forecast', 'Forecast'], ['map', 'Flood map'], ['quantum', 'Quantum AI'],
-  ['river', 'River network'], ['simulation', 'Simulation'], ['alerts', 'Alerts'], ['reports', 'Reports'],
+  ['river', 'River network'], ['simulation', 'Simulation'], ['datasets', 'Datasets'], ['alerts', 'Alerts'], ['reports', 'Reports'],
 ] as const
 
 export const timeSteps = ['T−24H', 'T−12H', 'NOW', '+6H', '+12H', '+24H', '+48H', '+72H', '+7D']
