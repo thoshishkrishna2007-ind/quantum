@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -30,6 +30,55 @@ export interface NewDataset {
   dataClass: DataClass
   fileName: string
   records: DatasetRecord[]
+}
+
+export interface UserIdentity {
+  id: string
+  email: string
+}
+
+const sessionLifetimeMs = 7 * 24 * 60 * 60 * 1000
+
+export function registerUser(email: string, password: string): UserIdentity {
+  const id = randomUUID()
+  const salt = randomBytes(16).toString('hex')
+  const passwordHash = scryptSync(password, salt, 64).toString('hex')
+  database.prepare('INSERT INTO users (id, email, password_salt, password_hash) VALUES (?, ?, ?, ?)')
+    .run(id, email, salt, passwordHash)
+  return { id, email }
+}
+
+export function authenticateUser(email: string, password: string): UserIdentity | null {
+  const user = database.prepare('SELECT id, email, password_salt AS salt, password_hash AS passwordHash FROM users WHERE email = ? COLLATE NOCASE')
+    .get(email) as (UserIdentity & { salt: string; passwordHash: string }) | undefined
+  if (!user) return null
+  const candidate = scryptSync(password, user.salt, 64)
+  const expected = Buffer.from(user.passwordHash, 'hex')
+  if (candidate.length !== expected.length || !timingSafeEqual(candidate, expected)) return null
+  return { id: user.id, email: user.email }
+}
+
+export function createSession(userId: string) {
+  const token = randomBytes(32).toString('base64url')
+  const expiresAt = Date.now() + sessionLifetimeMs
+  database.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)')
+    .run(createHash('sha256').update(token).digest('hex'), userId, expiresAt)
+  return { token, expiresAt }
+}
+
+export function getSession(token: string): UserIdentity | null {
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+  const row = database.prepare(`
+    SELECT users.id, users.email FROM sessions
+    JOIN users ON users.id = sessions.user_id
+    WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+  `).get(tokenHash, Date.now()) as UserIdentity | undefined
+  return row ?? null
+}
+
+export function deleteSession(token: string) {
+  const tokenHash = createHash('sha256').update(token).digest('hex')
+  database.prepare('DELETE FROM sessions WHERE token_hash = ?').run(tokenHash)
 }
 
 interface DatasetRow {

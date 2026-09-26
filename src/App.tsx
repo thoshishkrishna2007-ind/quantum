@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Activity, CloudRain, Droplets, Gauge, Hexagon, Menu, Satellite, ShieldAlert, Waves, X } from 'lucide-react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { Activity, CloudRain, Droplets, Gauge, Hexagon, LogOut, Menu, Satellite, ShieldAlert, UserRound, Waves, X } from 'lucide-react'
 import { navItems } from './data'
 import type { LayerId, SimulationSettings, ViewId } from './types'
 import { AlertSystem } from './components/AlertSystem'
@@ -12,6 +12,10 @@ import { StartupSequence } from './components/StartupSequence'
 import { TerrainScene } from './components/TerrainScene'
 import { TimeSlider } from './components/TimeSlider'
 import { DatasetManager } from './components/DatasetManager'
+import { AuthScreen } from './components/AuthScreen'
+import { getCurrentUser, signOut, type AuthUser } from './services/auth'
+
+const GeospatialMap = lazy(() => import('./components/GeospatialMap').then(module => ({ default: module.GeospatialMap })))
 
 const initialSettings: SimulationSettings = { rainfall: 42, riverLevel: 36, soil: 58, release: 18, temperature: 19, duration: 24 }
 
@@ -40,6 +44,16 @@ function App() {
   const [simulating, setSimulating] = useState(false)
   const [station, setStation] = useState('n01')
   const [rainPeriod, setRainPeriod] = useState('24H')
+  const [user, setUser] = useState<AuthUser | null>(null)
+  const [authReady, setAuthReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    getCurrentUser().then(current => { if (!cancelled) setUser(current) }).catch(() => {
+      if (!cancelled) setUser(null)
+    }).finally(() => { if (!cancelled) setAuthReady(true) })
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
     if (!playing) return
@@ -62,6 +76,12 @@ function App() {
   const showMap = ['overview','map','simulation'].includes(view)
   const intensity = useMemo(() => view === 'simulation' ? settings.rainfall : 35, [view, settings.rainfall])
 
+  const logout = async () => {
+    try { await signOut() } finally { setUser(null); setIntro(false) }
+  }
+
+  if (!authReady) return <div className="auth-loading"><span className="geo-loader"/> CHECKING SECURE SESSION</div>
+  if (!user) return <AuthScreen onAuthenticated={authenticated => { setUser(authenticated); setIntro(true) }} />
   if (intro) return <StartupSequence onEnter={() => setIntro(false)} onForecast={() => { setIntro(false); setView('forecast') }} />
 
   return (
@@ -74,7 +94,7 @@ function App() {
         <nav className={mobileNav ? 'open' : ''} aria-label="Main navigation">
           {navItems.map(([id,label])=><button key={id} className={view===id?'active':''} onClick={()=>switchView(id)}>{label}</button>)}
         </nav>
-        <div className="top-status"><span><i/> SYSTEM ONLINE</span><button aria-label="Open menu" onClick={()=>setMobileNav(!mobileNav)}>{mobileNav?<X/>:<Menu/>}</button></div>
+        <div className="top-status"><span><i/> SYSTEM ONLINE</span><span className="account-email"><UserRound/> {user.email}</span><button className="sign-out" aria-label="Sign out" title="Sign out" onClick={()=>void logout()}><LogOut/></button><button aria-label="Open menu" onClick={()=>setMobileNav(!mobileNav)}>{mobileNav?<X/>:<Menu/>}</button></div>
       </header>
 
       <main id="main-content">
@@ -86,7 +106,8 @@ function App() {
         {showMap && <>
           <section className="command-grid" aria-label="Flood intelligence map">
             <div className="map-frame">
-              <TerrainScene intensity={intensity} timeIndex={timeIndex} layers={layers} simulating={simulating}/>
+              {view === 'map' ? <Suspense fallback={<div className="geo-map-loading">LOADING GEOSPATIAL ENGINE…</div>}><GeospatialMap/></Suspense> : <TerrainScene intensity={intensity} timeIndex={timeIndex} layers={layers} simulating={simulating}/>}
+              {view !== 'map' && <>
               <div className="metric-rail">
                 {metrics.map(({label,value,icon:Icon,tone})=><div className={`metric ${tone??''}`} key={label}><Icon/><span>{label}</span><strong>{value}</strong><small>{label==='RAINFALL' ? `${intensity}% SCENARIO INTENSITY` : 'AWAITING MODEL INPUT'}</small></div>)}
               </div>
@@ -95,8 +116,9 @@ function App() {
                 {(['rain','rivers','probability','elevation','inundation','infrastructure'] as LayerId[]).map(layer=><button key={layer} className={layers.has(layer)?'active':''} onClick={()=>toggleLayer(layer)}><i/>{layer==='probability'?'FLOOD PROBABILITY':layer.toUpperCase()}</button>)}
               </div>
               {simulating && <div className="compute-overlay"><Hexagon/><strong>HYBRID COMPUTE ACTIVE</strong><span>PROPAGATING SCENARIO FIELD</span><i/></div>}
+              </>}
             </div>
-            <TimeSlider value={timeIndex} onChange={setTimeIndex} playing={playing} onPlay={()=>setPlaying(!playing)}/>
+            {view !== 'map' && <TimeSlider value={timeIndex} onChange={setTimeIndex} playing={playing} onPlay={()=>setPlaying(!playing)}/>}
           </section>
           {view==='overview' && <div className="overview-story">
             <div><span className="eyebrow">INTELLIGENCE CHAIN</span><p>Predict <i/> Understand <i/> Simulate <i/> Warn <i/> Prepare</p></div>

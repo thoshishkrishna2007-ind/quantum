@@ -6,32 +6,34 @@
   "scripts": {
     "dev": "concurrently --kill-others-on-fail -n API,WEB -c cyan,green \"npm:dev:api\" \"npm:dev:web\"",
     "dev:web": "vite --host 0.0.0.0 --port 4173",
-    "dev:api": "tsx watch server/index.ts",
+    "dev:api": "node --env-file-if-exists=.env.local --import tsx --watch server/index.ts",
     "build": "tsc -b && vite build && tsc -p tsconfig.server.json",
     "lint": "eslint .",
     "test": "node --import tsx --test server/**/*.test.ts",
-    "start": "tsx server/index.ts",
+    "start": "node --env-file-if-exists=.env.local --import tsx server/index.ts",
     "preview": "concurrently --kill-others-on-fail -n API,WEB -c cyan,green \"npm:start\" \"vite preview --host 0.0.0.0 --port 4173\""
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "lucide-react": "latest",
-    "vite": "latest",
+    "maplibre-gl": "^6.11.2",
     "react": "latest",
-    "react-dom": "latest"
+    "react-dom": "latest",
+    "vite": "latest"
   },
   "devDependencies": {
     "@eslint/js": "latest",
+    "@types/google.maps": "^3.66.4",
+    "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
+    "concurrently": "latest",
     "eslint": "latest",
     "eslint-plugin-react-hooks": "latest",
     "eslint-plugin-react-refresh": "latest",
     "globals": "latest",
+    "tsx": "latest",
     "typescript": "latest",
-    "typescript-eslint": "latest",
-    "@types/node": "latest",
-    "concurrently": "latest",
-    "tsx": "latest"
+    "typescript-eslint": "latest"
   }
 }

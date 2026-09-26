@@ -16,8 +16,8 @@ export async function fetchDatasets() {
   return response.datasets
 }
 
-export async function fetchDatasetRecords(id: string) {
-  const response = await request<{ records: DatasetRecord[] }>(`/api/datasets/${encodeURIComponent(id)}/records?limit=100`)
+export async function fetchDatasetRecords(id: string, limit = 100) {
+  const response = await request<{ records: DatasetRecord[] }>(`/api/datasets/${encodeURIComponent(id)}/records?limit=${limit}`)
   return response.records
 }
 
